@@ -19,26 +19,26 @@ namespace TProjections.TestHost.Sample.Projections
             _logger = logger;
         }
 
-        public async Task ApplyEventAsync(long sequence, BankAccountCreated @event)
+        public async Task On(long sequence, BankAccountCreated @event)
         {
             await _repository.RegisterAsync(@event.Id, sequence);
             _logger?.LogInformation($"Event {@event.GetType().Name} Applied.");
         }
 
-        public async Task ApplyEventAsync(long sequence, MoneyWithdrawn @event)
+        public async Task On(long sequence, MoneyWithdrawn @event)
         {
             var balance = await _repository.GetAsync(@event.Id);
             balance.Balance -= @event.Amount;
             await _repository.UpdateBalance(balance, sequence);
-            _logger?.LogInformation($"Event {@event.GetType().Name} Applied.");
+            _logger?.LogInformation($"[{@event.GetType().Name}] New Balance: ${balance.Balance}");
         }
 
-        public async Task ApplyEventAsync(long sequence, MoneyDeposited @event)
+        public async Task On(long sequence, MoneyDeposited @event)
         {
             var balance = await _repository.GetAsync(@event.Id);
             balance.Balance += @event.Amount;
             await _repository.UpdateBalance(balance, sequence);
-            _logger?.LogInformation($"Event {@event.GetType().Name} Applied.");
+            _logger?.LogInformation($"[{@event.GetType().Name}] New Balance: ${balance.Balance}");
         }
     }
 }

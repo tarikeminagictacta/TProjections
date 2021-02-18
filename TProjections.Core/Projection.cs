@@ -1,5 +1,7 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 
@@ -16,39 +18,46 @@ namespace TProjections.Core
             _repository = repository;
             _logger = logger;
             LatestSequence = 0;
+            EventPageSize = 50;
+            PoolingTimer = TimeSpan.FromSeconds(3);
         }
+
+        public TimeSpan PoolingTimer { get; }
+
+        public int EventPageSize { get; }
 
         public long LatestSequence { get; private set; }
 
-        public async Task Initialize()
+        public async Task SetSequence()
         {
-            _logger?.LogInformation($"Initializing projection {GetType().Name}...");
             LatestSequence = await _repository.GetCurrentSequenceAsync();
-            _logger?.LogInformation($"Initializing projection {GetType().Name} Done!");
+            _logger.LogInformation($"[{GetType().Name}] Continuing projection from sequence: {LatestSequence}");
         }
 
-        public virtual async Task ApplyEventsAsync(IReadOnlyList<EventEnvelope> events)
+        public async Task StartProjecting(CancellationToken cancellationToken)
+        {
+            while (!cancellationToken.IsCancellationRequested)
+            {
+                var events = await _repository.GetEvents(LatestSequence, EventPageSize);
+                await ApplyEvents(events.OrderBy(e => e.Sequence).ToList());
+                if (events.Count() < EventPageSize) await Task.Delay(PoolingTimer, cancellationToken);
+            }
+        }
+
+        private async Task ApplyEvents(IReadOnlyList<EventEnvelope> events)
         {
             if (!events.Any()) return;
 
             foreach (var @event in events)
             {
-                await ((dynamic) this).ApplyEventAsync(@event.Sequence, (dynamic) @event.Body).ConfigureAwait(false);
+                await ((dynamic) this).On(@event.Sequence, (dynamic) @event.Body).ConfigureAwait(false);
                 LatestSequence = @event.Sequence;
             }
 
             await _repository.SaveChangesAsync();
         }
 
-        public async Task ClearAsync()
-        {
-            _logger?.LogInformation($"Clearing projection {GetType().Name}...");
-            await _repository.DeleteAllAsync();
-            LatestSequence = 0;
-            _logger?.LogInformation($"Clearing projection {GetType().Name} Done!");
-        }
-
-        public virtual Task ApplyEventAsync(long sequence, object @event)
+        public virtual Task On(long sequence, object @event)
         {
             _logger?.LogInformation($"Event {@event.GetType().Name} ignored.");
             return Task.CompletedTask;

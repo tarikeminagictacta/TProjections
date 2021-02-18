@@ -1,12 +1,15 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using TProjections.Core;
+using TProjections.TestHost.Sample.Events;
 
 namespace TProjections.TestHost.Sample.Repositories
 {
     public class BankAccountBalanceRepository : IBankAccountBalanceRepository
     {
-        private List<BankAccountBalance> _accountBalances;
+        private readonly List<BankAccountBalance> _accountBalances;
 
         public BankAccountBalanceRepository()
         {
@@ -17,17 +20,32 @@ namespace TProjections.TestHost.Sample.Repositories
 
         public async Task<long> GetCurrentSequenceAsync()
         {
-            return 0;
+            return 1;
+        }
+
+        public async Task<ICollection<EventEnvelope>> GetEvents(long latestSequence, int eventPageSize)
+        {
+            var events = new List<EventEnvelope>();
+            var random = new Random(1337);
+            if (latestSequence == 1)
+                events.Add(new EventEnvelope(
+                    new BankAccountCreated {AccountHolder = "Tarik Eminagic", Id = "some-account"}, 1));
+            while (events.Count < eventPageSize - 10)
+                if (events.Count % 2 == 0)
+                    events.Add(new EventEnvelope(
+                        new MoneyDeposited {Amount = Convert.ToDecimal(random.Next(0, 1337)), Id = "some-account"},
+                        events.Count + 1));
+                else
+                    events.Add(new EventEnvelope(
+                        new MoneyWithdrawn {Amount = Convert.ToDecimal(random.Next(0, 1337)), Id = "some-account"},
+                        events.Count + 1));
+
+            return events;
         }
 
         public async Task SaveChangesAsync()
         {
             // Do nothing
-        }
-
-        public async Task DeleteAllAsync()
-        {
-            _accountBalances = new List<BankAccountBalance>();
         }
 
         public async Task RegisterAsync(string eventId, long sequence)
