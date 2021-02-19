@@ -12,33 +12,37 @@ namespace TProjections.TestHost.Sample.Projections
         private readonly IBankAccountBalanceRepository _repository;
 
         public BankAccountBalanceProjection(IBankAccountBalanceRepository repository,
-            ILogger<BankAccountBalanceProjection> logger = null)
-            : base(repository, logger)
+            ILogger<BankAccountBalanceProjection> logger)
+            : base(repository)
         {
             _repository = repository;
             _logger = logger;
         }
 
-        public async Task On(long sequence, BankAccountCreated @event)
+        public async Task On(BankAccountCreated @event, long sequence)
         {
             await _repository.RegisterAsync(@event.Id, sequence);
-            _logger?.LogInformation($"Event {@event.GetType().Name} Applied.");
+            _logger.LogInformation($"Bank account {_repository.BankAccount} created.");
         }
 
-        public async Task On(long sequence, MoneyWithdrawn @event)
+        public async Task On(MoneyWithdrawn @event, long sequence)
         {
             var balance = await _repository.GetAsync(@event.Id);
             balance.Balance -= @event.Amount;
             await _repository.UpdateBalance(balance, sequence);
-            _logger?.LogInformation($"[{@event.GetType().Name}] New Balance: ${balance.Balance}");
+
+            _logger.LogInformation(
+                $"Money withdrawn from bank account {_repository.BankAccount}. New Balance: {balance.Balance}");
         }
 
-        public async Task On(long sequence, MoneyDeposited @event)
+        public async Task On(MoneyDeposited @event, long sequence)
         {
             var balance = await _repository.GetAsync(@event.Id);
             balance.Balance += @event.Amount;
             await _repository.UpdateBalance(balance, sequence);
-            _logger?.LogInformation($"[{@event.GetType().Name}] New Balance: ${balance.Balance}");
+
+            _logger.LogInformation(
+                $"Money deposited from bank account {_repository.BankAccount}. New Balance: {balance.Balance}");
         }
     }
 }

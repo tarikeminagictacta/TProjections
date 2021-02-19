@@ -1,11 +1,13 @@
-﻿using System.Threading;
+﻿using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace TProjections.Core
 {
     public interface IProjection
     {
+        long LatestSequence { get; }
+
         Task SetSequence();
-        Task StartProjecting(CancellationToken cancellationToken);
+        Task ApplyEvents(IReadOnlyList<EventEnvelope> events);
     }
 }

@@ -2,60 +2,47 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using TProjection.Pooling;
 using TProjections.Core;
 using TProjections.TestHost.Sample.Events;
 
 namespace TProjections.TestHost.Sample.Repositories
 {
-    public class BankAccountBalanceRepository : IBankAccountBalanceRepository
+    public class BankAccountBalanceRepository : IBankAccountBalanceRepository, IPassiveEventStore
     {
         private readonly List<BankAccountBalance> _accountBalances;
+        private readonly Random _random;
 
         public BankAccountBalanceRepository()
         {
             _accountBalances = new List<BankAccountBalance>();
+            _random = new Random();
+            BankAccount = _random.Next(1, 1000);
         }
 
         public IReadOnlyList<BankAccountBalance> AccountBalances => _accountBalances.AsReadOnly();
 
-        public async Task<long> GetCurrentSequenceAsync()
+        public Task<long> GetCurrentSequenceAsync()
         {
-            return 1;
+            return Task.FromResult<long>(0);
         }
 
-        public async Task<ICollection<EventEnvelope>> GetEvents(long latestSequence, int eventPageSize)
+        public Task SaveChangesAsync()
         {
-            var events = new List<EventEnvelope>();
-            var random = new Random(1337);
-            if (latestSequence == 1)
-                events.Add(new EventEnvelope(
-                    new BankAccountCreated {AccountHolder = "Tarik Eminagic", Id = "some-account"}, 1));
-            while (events.Count < eventPageSize - 10)
-                if (events.Count % 2 == 0)
-                    events.Add(new EventEnvelope(
-                        new MoneyDeposited {Amount = Convert.ToDecimal(random.Next(0, 1337)), Id = "some-account"},
-                        events.Count + 1));
-                else
-                    events.Add(new EventEnvelope(
-                        new MoneyWithdrawn {Amount = Convert.ToDecimal(random.Next(0, 1337)), Id = "some-account"},
-                        events.Count + 1));
-
-            return events;
+            return Task.CompletedTask;
         }
 
-        public async Task SaveChangesAsync()
-        {
-            // Do nothing
-        }
+        public int BankAccount { get; }
 
-        public async Task RegisterAsync(string eventId, long sequence)
+        public Task RegisterAsync(string eventId, long sequence)
         {
             _accountBalances.Add(new BankAccountBalance {Balance = 0M, Id = eventId, Sequence = sequence});
+            return Task.CompletedTask;
         }
 
-        public async Task<BankAccountBalance> GetAsync(string eventId)
+        public Task<BankAccountBalance> GetAsync(string eventId)
         {
-            return _accountBalances.First(b => b.Id == eventId);
+            return Task.FromResult(_accountBalances.First(b => b.Id == eventId));
         }
 
         public async Task UpdateBalance(BankAccountBalance balance, long sequence)
@@ -63,6 +50,37 @@ namespace TProjections.TestHost.Sample.Repositories
             var existingBalance = await GetAsync(balance.Id);
             _accountBalances.Remove(existingBalance);
             _accountBalances.Add(balance);
+        }
+
+        public async Task<ICollection<EventEnvelope>> GetEvents(long latestSequence, int eventPageSize)
+        {
+            var events = new List<EventEnvelope>();
+
+            var eventsToGenerate = _random.Next(1, eventPageSize);
+
+            if (latestSequence == 0)
+                events.Add(new EventEnvelope(
+                    new BankAccountCreated {AccountHolder = "Tarik Eminagic", Id = BankAccount.ToString()}, 1));
+
+            while (events.Count < eventsToGenerate)
+                switch (_random.Next() % 2)
+                {
+                    case 0:
+                        events.Add(new EventEnvelope(
+                            new MoneyDeposited
+                                {Amount = Convert.ToDecimal(_random.Next(0, 500)), Id = BankAccount.ToString()},
+                            events.Count + 1));
+                        break;
+                    case 1:
+                        events.Add(new EventEnvelope(
+                            new MoneyWithdrawn
+                                {Amount = Convert.ToDecimal(_random.Next(0, 1337)), Id = BankAccount.ToString()},
+                            events.Count + 1));
+                        break;
+                }
+
+            await Task.Delay(TimeSpan.FromSeconds(_random.Next(1, 5)));
+            return events;
         }
     }
 }

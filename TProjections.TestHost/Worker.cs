@@ -1,28 +1,48 @@
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using TProjections.Core;
+using TProjection.Pooling;
 
 namespace TProjections.TestHost
 {
     public class Worker : BackgroundService
     {
-        private readonly IEnumerable<IProjection> _projections;
+        private readonly IHostApplicationLifetime _hostApplicationLifetime;
+        private readonly IServiceProvider _serviceProvider;
         private readonly List<Task> _subscriptions;
 
-        public Worker(IEnumerable<IProjection> projections)
+        public Worker(IServiceProvider serviceProvider, IHostApplicationLifetime hostApplicationLifetime)
         {
-            _projections = projections;
+            _serviceProvider = serviceProvider;
+            _hostApplicationLifetime = hostApplicationLifetime;
             _subscriptions = new List<Task>();
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            foreach (var projection in _projections)
+            using var scope = _serviceProvider.CreateScope();
+            var projectors = scope.ServiceProvider.GetServices<IPoolingProjector>().ToList();
+
+            try
             {
-                await projection.SetSequence();
-                _subscriptions.Add(Task.Run(() => projection.StartProjecting(stoppingToken), stoppingToken));
+                foreach (var projector in projectors)
+                {
+                    await projector.SetSequence();
+                    _subscriptions.Add(Task.Run(() => projector.StartProjecting(), stoppingToken));
+                }
+
+                while (!stoppingToken.IsCancellationRequested)
+                    await Task.Delay(TimeSpan.FromSeconds(2), stoppingToken);
+            }
+            finally
+            {
+                foreach (var projector in projectors) await projector.StopProjecting();
+                foreach (var subscription in _subscriptions) subscription.Dispose();
+                _hostApplicationLifetime.StopApplication();
             }
         }
     }

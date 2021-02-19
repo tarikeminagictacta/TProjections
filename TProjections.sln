@@ -3,9 +3,11 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.31005.135
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TProjections.TestHost", "TProjections.TestHost\TProjections.TestHost.csproj", "{FABC723A-6BF5-4E10-B10D-3775FD72EAB4}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TProjections.TestHost", "TProjections.TestHost\TProjections.TestHost.csproj", "{FABC723A-6BF5-4E10-B10D-3775FD72EAB4}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TProjections.Core", "TProjections.Core\TProjections.Core.csproj", "{EE8ADD24-7CC8-4CAE-8D39-6E378F38ABDA}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TProjection.Pooling", "TProjection.Pooling\TProjection.Pooling.csproj", "{5FBB2C68-70C6-4EE3-8EC3-C04E7E052338}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,6 +23,10 @@ Global
 		{EE8ADD24-7CC8-4CAE-8D39-6E378F38ABDA}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{EE8ADD24-7CC8-4CAE-8D39-6E378F38ABDA}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{EE8ADD24-7CC8-4CAE-8D39-6E378F38ABDA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5FBB2C68-70C6-4EE3-8EC3-C04E7E052338}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5FBB2C68-70C6-4EE3-8EC3-C04E7E052338}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5FBB2C68-70C6-4EE3-8EC3-C04E7E052338}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5FBB2C68-70C6-4EE3-8EC3-C04E7E052338}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

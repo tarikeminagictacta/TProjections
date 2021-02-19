@@ -1,6 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using TProjections.Core;
+using TProjection.Pooling;
 using TProjections.TestHost.Sample.Projections;
 using TProjections.TestHost.Sample.Repositories;
 
@@ -19,8 +19,10 @@ namespace TProjections.TestHost
                 .ConfigureServices((hostContext, services) =>
                 {
                     services.AddHostedService<Worker>();
-                    services.AddSingleton<IProjection, BankAccountBalanceProjection>();
-                    services.AddSingleton<IBankAccountBalanceRepository, BankAccountBalanceRepository>();
+                    services.AddTransient<IBankAccountBalanceRepository, BankAccountBalanceRepository>();
+                    services.AddTransient<IPassiveEventStore, BankAccountBalanceRepository>();
+                    services.AddTransient<BankAccountBalanceProjection>();
+                    services.AddTransient<IPoolingProjector, PoolingProjector<BankAccountBalanceProjection>>();
                 });
         }
     }

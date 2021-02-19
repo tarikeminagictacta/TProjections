@@ -10,6 +10,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\TProjection.Pooling\TProjection.Pooling.csproj" />
     <ProjectReference Include="..\TProjections.Core\TProjections.Core.csproj" />
   </ItemGroup>
 </Project>
